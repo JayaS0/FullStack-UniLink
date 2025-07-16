@@ -1,0 +1,25 @@
+nav {
+  padding: 10px;
+  border-bottom: 1px solid #ccc;
+  background-color: #f9f9f9;
+  display: flex;
+  gap: 20px; /* spacing between links */
+  justify-content: center; /* center horizontally */
+  align-items: center;
+}
+
+nav a {
+  text-decoration: none;
+  color: #333;
+  font-weight: 500;
+  padding: 6px 12px;
+  border-radius: 4px;
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+nav a:hover {
+  background-color: #865a5a;
+  color: white;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(141, 69, 79, 0.4);
+}
