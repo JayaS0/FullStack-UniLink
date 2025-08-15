@@ -1,18 +1,31 @@
 import jwt from 'jsonwebtoken';
 
+
 export const verifyToken = (req, res, next) => {
   const authHeader = req.headers.authorization;
-  if (!authHeader) return res.status(401).json({ message: 'Access denied, token missing' });
+  console.log('Authorization header:', authHeader);
+
+  if (!authHeader) {
+    return res.status(401).json({ message: 'Access denied, token missing' });
+  }
 
   const token = authHeader.split(' ')[1];
+  console.log('Token:', token);
+
+  if (!token) return res.status(401).json({ message: 'Token missing' });
+
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    console.log('Decoded token:', decoded);  // <--- check what is inside
     req.user = decoded;
     next();
   } catch (error) {
-    return res.status(401).json({ message: 'Invalid token' });
+    console.error('JWT verify error:', error);
+    return res.status(401).json({ message: 'Invalid or expired token' });
   }
 };
+
+
 
 export const verifyStudent = (req, res, next) => {
   if (req.user.role !== 'student') {

@@ -1,26 +1,40 @@
 import express from 'express';
 import Program from '../models/Program.js';
+import School from '../models/School.js';
 import { verifyToken, verifyAdmin } from '../middleware/authMiddleware.js';
 
 const router = express.Router();
 
-// Create a new program
+// Create a new program(only admin can create)
 router.post('/', verifyToken, verifyAdmin, async (req, res) => {
-  const { programName, semesters } = req.body;
+  const { programName, semesters, schoolName } = req.body;
 
-  if (!programName) {
-    return res.status(400).json({ message: 'Program name is required' });
+  if (!programName || !schoolName) {
+    return res.status(400).json({ message: 'Program name and school are required' });
   }
 
   try {
-    const program = new Program({ programName, semesters: semesters || [] });
+    // 1️⃣ Find the school by name
+    const schoolDoc = await School.findOne({ name: schoolName });
+    if (!schoolDoc) {
+      return res.status(404).json({ message: 'School not found' });
+    }
+
+    // 2️⃣ Create the program using the school _id
+    const program = new Program({
+      name: programName,
+      semesters: semesters || [],
+      school: schoolDoc._id,
+    });
+
     await program.save();
     res.status(201).json(program);
   } catch (error) {
     console.error('Error creating program:', error);
-    res.status(500).json({ message: 'Server error' });
+    res.status(500).json({ message: 'Error creating program', error });
   }
 });
+
 
 // Get all programs
 router.get('/', verifyToken, async (req, res) => {
@@ -33,11 +47,13 @@ router.get('/', verifyToken, async (req, res) => {
   }
 });
 
-// Add a semester to a program
+// Add a semester to a program  (programid)
 router.put('/:id/semester', verifyToken, verifyAdmin, async (req, res) => {
   const { semester } = req.body;
+  console.log('Adding semester:', semester);
   try {
     const program = await Program.findById(req.params.id);
+    console.log(program)
     if (!program) return res.status(404).json({ message: 'Program not found' });
 
     program.semesters.push(semester);
@@ -46,7 +62,7 @@ router.put('/:id/semester', verifyToken, verifyAdmin, async (req, res) => {
     res.json(program);
   } catch (error) {
     console.error('Error adding semester:', error);
-    res.status(500).json({ message: 'Server error' });
+    res.status(500).json({ message: 'Error adding semester' });
   }
 });
 

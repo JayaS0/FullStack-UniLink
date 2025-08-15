@@ -2,7 +2,7 @@ import express from 'express';
 import multer from 'multer';
 import fs from 'fs';
 import Resource from '../models/Resource.js';
-import { verifyToken } from '../middleware/authMiddleware.js';
+import { verifyAdmin, verifyStudent, verifyToken } from '../middleware/authMiddleware.js';
 
 const router = express.Router();
 
@@ -41,13 +41,26 @@ router.post('/', verifyToken, upload.array('files', 20), async (req, res) => {
   if (!title || !type || !program) {
     return res.status(400).json({ message: 'Title, type, and program are required' });
   }
+  
 
   if (!facultyCanAccessProgram(user, program)) {
     return res.status(403).json({ message: 'Faculty cannot upload to this program' });
   }
-  if (user.role === 'student' && (user.program !== program || user.semester !== semester)) {
+  // console.log('User program:', user.programs[0]);
+  // console.log('Request program:', program);
+  if (user.role === 'student') {
+  const userProgram = user.programs[0]?.toString();
+  const reqProgram = program.toString();
+
+  const userSemester = String(user.semester);
+  const reqSemester = String(semester);
+
+  if (userProgram !== reqProgram || userSemester !== reqSemester) {
     return res.status(403).json({ message: 'Students can upload only to their program and semester' });
   }
+}
+
+    
 
   if (!req.files || req.files.length === 0) {
     return res.status(400).json({ message: 'At least one file must be uploaded' });
@@ -77,6 +90,7 @@ router.post('/', verifyToken, upload.array('files', 20), async (req, res) => {
   }
 });
 
+
 // GET /api/resources/:program - Get all resources by program
 router.get('/:program', verifyToken, async (req, res) => {
   const user = req.user;
@@ -97,11 +111,13 @@ router.get('/:program', verifyToken, async (req, res) => {
   }
 });
 
-// PUT /api/resources/:id - Update a resource
+
+// PUT /api/resources/:id - Update a resource (resource id)
 router.put('/:id', verifyToken, async (req, res) => {
   const user = req.user;
   const { id } = req.params;
   const { title, description, type, program, semester, relatedCourse } = req.body;
+  // console.log(title)
 
   try {
     const resource = await Resource.findById(id);
@@ -144,7 +160,7 @@ router.put('/:id', verifyToken, async (req, res) => {
 });
 
 // DELETE /api/resources/:id - Delete resource (faculty/student can delete their own)
-router.delete('/:id', verifyToken, async (req, res) => {
+router.delete('/:id', verifyToken,verifyAdmin, async (req, res) => {
   const user = req.user;
   const { id } = req.params;
 
@@ -166,13 +182,20 @@ router.delete('/:id', verifyToken, async (req, res) => {
 
     if (user.role === 'faculty') {
       if (!user.programs.includes(resource.program)) {
-        return res.status(403).json({ message: 'You do not have permission for this program' });
+        return res.status(403).json({ message: 'You do not have permission for this program as a faculty' });
       }
     }
 
+
+
+    user.program = user.programs[0]?.toString();
+    const resourceProgram = resource.program.toString();
+
+    // console.log('user program:', user.programs[0]);
+    // console.log('resource program:', resourceProgram);
     if (user.role === 'student') {
-      if (user.program !== resource.program) {
-        return res.status(403).json({ message: 'You do not have permission for this program' });
+      if (user.program!== resourceProgram) {
+        return res.status(403).json({ message: 'You do not have permission for this program as a student' });
       }
     }
 
