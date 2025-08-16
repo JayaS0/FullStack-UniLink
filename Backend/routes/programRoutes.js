@@ -5,13 +5,34 @@ import { verifyToken, verifyAdmin } from '../middleware/authMiddleware.js';
 
 const router = express.Router();
 
+
+import mongoose from "mongoose";
+
+const db = mongoose.connection;
+
+// db.once("open", async () => {
+//   try {
+//     // Drop the wrong index
+//     await db.collection("programs").dropIndex("programName_1");
+//     console.log("Old index dropped successfully.");
+
+//     // Create a new unique index on `name`
+//     await db.collection("programs").createIndex({ name: 1 }, { unique: true });
+//     console.log("New unique index on `name` created successfully.");
+//   } catch (error) {
+//     console.error("Error fixing indexes:", error);
+//   }
+// });
+
+
 // Create a new program(only admin can create)
 router.post('/', verifyToken, verifyAdmin, async (req, res) => {
   const { programName, semesters, schoolName } = req.body;
-
+  console.log('programname:', programName, 'for school:', schoolName);
   if (!programName || !schoolName) {
     return res.status(400).json({ message: 'Program name and school are required' });
   }
+  console.log("Full request body:", req.body);
 
   try {
     // 1️⃣ Find the school by name
@@ -49,22 +70,28 @@ router.get('/', verifyToken, async (req, res) => {
 
 // Add a semester to a program  (programid)
 router.put('/:id/semester', verifyToken, verifyAdmin, async (req, res) => {
-  const { semester } = req.body;
-  console.log('Adding semester:', semester);
+  let { semester } = req.body;
+
+  // Make sure it's an array
+  if (!Array.isArray(semester)) {
+    semester = [semester]; // wrap single number into array
+  }
+
   try {
     const program = await Program.findById(req.params.id);
-    console.log(program)
     if (!program) return res.status(404).json({ message: 'Program not found' });
 
-    program.semesters.push(semester);
-    await program.save();
+    // Push each semester number into the semesters array
+    semester.forEach((s) => program.semesters.push(Number(s)));
 
+    await program.save();
     res.json(program);
   } catch (error) {
     console.error('Error adding semester:', error);
     res.status(500).json({ message: 'Error adding semester' });
   }
 });
+
 
 // Delete a program
 router.delete('/:id', verifyToken, verifyAdmin, async (req, res) => {

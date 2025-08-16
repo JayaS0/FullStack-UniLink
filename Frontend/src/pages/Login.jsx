@@ -1,5 +1,7 @@
+
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { postData } from "../api/api"; // adjust path if needed
 
 export default function Login() {
   const [email, setEmail] = useState("");
@@ -12,30 +14,30 @@ export default function Login() {
   const [forgotEmail, setForgotEmail] = useState("");
   const navigate = useNavigate();
 
-  const handleSubmit = (e) => {
-  e.preventDefault();
-  if (!email.endsWith("@ku.edu.np") && !email.endsWith("@kusom.edu.np")) {
-    alert("Only KU emails allowed!");
-    return;
-  }
+  const roles = ["admin", "faculty", "student"];
 
-  const userData = JSON.parse(localStorage.getItem("currentUser"));
-  if (!userData || userData.email !== email) {
-    alert("User not found! Please sign up first.");
-    return;
-  }
+  const handleSubmit = async (e) => {
+    e.preventDefault();
 
-  // For demo, store login flag and role
-  localStorage.setItem("isLoggedIn", "true");
-  localStorage.setItem("role", userData.role);
+    if (!email.endsWith("@ku.edu.np") && !email.endsWith("@kusom.edu.np")) {
+      alert("Only KU emails allowed!");
+      return;
+    }
 
-  alert("Logged in successfully!");
+    try {
+      const result = await postData("auth/login", { email, password, role });
+      localStorage.setItem("token", result.data.token);
+      localStorage.setItem("currentUser", JSON.stringify(result.data.user));
+      alert("Logged in successfully!");
 
-  if (userData.role === "student") navigate("/student");
-  else if (userData.role === "faculty") navigate("/faculty");
-  else if (userData.role === "admin") navigate("/admin");
-};
-
+      if (result.data.user.role === "student") navigate("/student");
+      else if (result.data.user.role === "faculty") navigate("/faculty");
+      else if (result.data.user.role === "admin") navigate("/admin");
+    } catch (error) {
+      console.error(error);
+      alert(error.response?.data?.message || "Login failed. Please try again.");
+    }
+  };
 
   const handleForgotSubmit = (e) => {
     e.preventDefault();
@@ -44,310 +46,139 @@ export default function Login() {
     setForgotEmail("");
   };
 
-  const roles = ["admin", "faculty", "student"];
-
   return (
-    <>
-      <div
-        style={{
-          height: "100vh",
-          background: "#D1CFC9",
-          display: "flex",
-          justifyContent: "center",
-          alignItems: "center",
-          fontFamily: "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif",
-          padding: 20,
-        }}
-      >
-        <div
-          style={{
-            background: "white",
-            padding: "40px 30px 30px",
-            borderRadius: "12px",
-            boxShadow: "0 10px 30px rgba(0,0,0,0.1)",
-            width: "100%",
-            maxWidth: 420,
-            position: "relative",
-          }}
-        >
-          <h1
-            style={{
-              textAlign: "center",
-              marginBottom: 10,
-              color: "#1C2E4A",
-              fontWeight: "700",
-              fontSize: 32,
-              userSelect: "none",
-            }}
-          >
-            UniLink
-          </h1>
-          <h2
-            style={{
-              textAlign: "center",
-              marginBottom: 25,
-              color: "#333",
-              fontWeight: "600",
-            }}
-          >
-            Log In
-          </h2>
+    <div style={{ minHeight: "100vh", backgroundColor: "#D1CFC9", padding: 20 }}>
+      <div style={containerStyle}>
+        <h1 style={titleStyle}>UniLink</h1>
+        <h2 style={subTitleStyle}>Log In</h2>
 
-          <form onSubmit={handleSubmit}>
-            {/* Email */}
+        <form onSubmit={handleSubmit}>
+          <label style={labelStyle}>KU Email</label>
+          <input
+            type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            required
+            style={inputStyle}
+          />
+
+          <label style={labelStyle}>Password</label>
+          <div style={{ position: "relative", marginBottom: 20 }}>
             <input
-              type="email"
-              placeholder="Enter your KU email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              type={showPassword ? "text" : "password"}
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
               required
-              style={inputStyle}
+              style={{ ...inputStyle, paddingRight: 70 }}
             />
-
-            {/* Password with show/hide */}
-            <div style={{ position: "relative", marginBottom: 20 }}>
-              <input
-                type={showPassword ? "text" : "password"}
-                placeholder="Enter your password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-                style={{ ...inputStyle, paddingRight: 70 }}
-              />
-              <button
-                type="button"
-                onClick={() => setShowPassword(!showPassword)}
-                style={showHideBtnStyle}
-              >
-                {showPassword ? "Hide" : "Show"}
-              </button>
-            </div>
-
-            {/* Role dropdown */}
-            <div style={{ position: "relative", marginBottom: 20 }}>
-              <button
-                type="button"
-                onClick={() => setShowRoles((v) => !v)}
-                style={{
-                  ...inputStyle,
-                  cursor: "pointer",
-                  textAlign: "left",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "space-between",
-                  backgroundColor: "white",
-                  userSelect: "none",
-                }}
-              >
-                <span>{role.charAt(0).toUpperCase() + role.slice(1)}</span>
-                <span style={{ fontSize: 12 }}>▼</span>
-              </button>
-              {showRoles && (
-                <div style={dropdownStyle}>
-                  {roles.map((r) => (
-                    <div
-                      key={r}
-                      onClick={() => {
-                        setRole(r);
-                        setShowRoles(false);
-                      }}
-                      onMouseEnter={(e) =>
-                        (e.currentTarget.style.backgroundColor = "#dbe9f4")
-                      }
-                      onMouseLeave={(e) =>
-                        (e.currentTarget.style.backgroundColor = "transparent")
-                      }
-                      style={dropdownItemStyle}
-                    >
-                      {r.charAt(0).toUpperCase() + r.slice(1)}
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            {/* Login Button */}
-            <button type="submit" style={btnStyle}>
-              Log In
-            </button>
-
-            {/* Remember Me and Forgot Password side by side */}
-            <div
-              style={{
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-                marginTop: 10,
-                userSelect: "none",
-              }}
+            <button
+              type="button"
+              onClick={() => setShowPassword(!showPassword)}
+              style={showHideBtnStyle}
             >
-              <label style={{ display: "flex", alignItems: "center", cursor: "pointer" }}>
-                <input
-                  type="checkbox"
-                  checked={rememberMe}
-                  onChange={(e) => setRememberMe(e.target.checked)}
-                  style={{ marginRight: 8, cursor: "pointer" }}
-                />
-                Remember Me
-              </label>
+              {showPassword ? "Hide" : "Show"}
+            </button>
+          </div>
 
-              <div
-                onClick={() => setShowForgot(true)}
-                style={{ ...linkStyle, margin: 0 }}
-                tabIndex={0}
-                role="button"
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") setShowForgot(true);
-                }}
-              >
-                Forgot Password?
+          <label style={labelStyle}>Role</label>
+          <div style={{ position: "relative", marginBottom: 20 }}>
+            <button type="button" onClick={() => setShowRoles(!showRoles)} style={dropdownBtnStyle}>
+              <span>{role}</span> <span style={{ fontSize: 12 }}>▼</span>
+            </button>
+            {showRoles && (
+              <div style={dropdownStyle}>
+                {roles.map((r) => (
+                  <div
+                    key={r}
+                    onClick={() => { setRole(r); setShowRoles(false); }}
+                    onMouseEnter={(e) => e.currentTarget.style.backgroundColor = "#dbe9f4"}
+                    onMouseLeave={(e) => e.currentTarget.style.backgroundColor = "transparent"}
+                    style={dropdownItemStyle}
+                  >
+                    {r}
+                  </div>
+                ))}
               </div>
-            </div>
-          </form>
-
-          {/* Sign Up Link */}
-          <div style={{ marginTop: 15, textAlign: "center" }}>
-            <span>Don't have an account? </span>
-            <button
-              onClick={() => navigate("/signup")}
-              style={{ ...linkStyle, display: "inline-block", padding: 0, marginLeft: 5 }}
-            >
-              Sign Up
-            </button>
+            )}
           </div>
-        </div>
-      </div>
 
-      {/* Forgot Password Modal */}
-      {showForgot && (
-        <div style={modalOverlayStyle} onClick={() => setShowForgot(false)}>
-          <div
-            style={modalContentStyle}
-            onClick={(e) => e.stopPropagation()}
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="forgotPasswordTitle"
-          >
-            <h3 id="forgotPasswordTitle" style={{ marginBottom: 20, color: "#1C2E4A" }}>
-              Reset Password
-            </h3>
-            <form onSubmit={handleForgotSubmit}>
+          {/* Remember Me and Forgot Password */}
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
+            <label style={{ display: "flex", alignItems: "center", cursor: "pointer" }}>
               <input
-                type="email"
-                placeholder="Enter your KU email"
-                value={forgotEmail}
-                onChange={(e) => setForgotEmail(e.target.value)}
-                required
-                style={{ ...inputStyle, marginBottom: 20 }}
+                type="checkbox"
+                checked={rememberMe}
+                onChange={(e) => setRememberMe(e.target.checked)}
+                style={{ marginRight: 8, cursor: "pointer" }}
               />
-              <button type="submit" style={btnStyle}>
-                Send Reset Link
-              </button>
-            </form>
-            <button
-              onClick={() => setShowForgot(false)}
-              style={{ ...btnStyle, backgroundColor: "#ccc", color: "#444", marginTop: 10 }}
+              Remember Me
+            </label>
+            <div
+              onClick={() => setShowForgot(true)}
+              style={{ ...linkStyle, margin: 0 }}
+              tabIndex={0}
+              role="button"
+              onKeyDown={(e) => { if(e.key === "Enter") setShowForgot(true); }}
             >
-              Cancel
-            </button>
+              Forgot Password?
+            </div>
           </div>
+
+          <button type="submit" style={btnStyle}>Log In</button>
+        </form>
+
+        {/* Sign Up Link */}
+        <div style={{ marginTop: 15, textAlign: "center" }}>
+          <span>Don't have an account? </span>
+          <button
+            onClick={() => navigate("/auth/signup")}
+            style={{ ...linkStyle, display: "inline-block", padding: 0, marginLeft: 5 }}
+          >
+            Sign Up
+          </button>
         </div>
-      )}
-    </>
+
+        {/* Forgot Password Modal */}
+        {showForgot && (
+          <div style={modalOverlayStyle} onClick={() => setShowForgot(false)}>
+            <div style={modalContentStyle} onClick={(e) => e.stopPropagation()} role="dialog" aria-modal="true">
+              <h3 style={{ marginBottom: 20, color: "#1C2E4A" }}>Reset Password</h3>
+              <form onSubmit={handleForgotSubmit}>
+                <input
+                  type="email"
+                  placeholder="Enter KU email"
+                  value={forgotEmail}
+                  onChange={(e) => setForgotEmail(e.target.value)}
+                  required
+                  style={{ ...inputStyle, marginBottom: 20 }}
+                />
+                <button type="submit" style={btnStyle}>Send Reset Link</button>
+              </form>
+              <button
+                onClick={() => setShowForgot(false)}
+                style={{ ...btnStyle, backgroundColor: "#ccc", color: "#444", marginTop: 10 }}
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
   );
 }
 
-const inputStyle = {
-  width: "100%",
-  padding: "12px 16px",
-  marginBottom: "15px",
-  borderRadius: 8,
-  border: "1px solid #ccc",
-  fontSize: 16,
-  outline: "none",
-  boxSizing: "border-box",
-  transition: "border-color 0.3s ease",
-};
-
-const btnStyle = {
-  width: "100%",
-  padding: "14px",
-  backgroundColor: "#1C2E4A",
-  color: "white",
-  border: "none",
-  borderRadius: 8,
-  fontSize: 18,
-  fontWeight: "600",
-  cursor: "pointer",
-  userSelect: "none",
-  transition: "background-color 0.3s ease",
-  outline: "none",
-};
-
-const showHideBtnStyle = {
-  position: "absolute",
-  right: 12,
-  top: "50%",
-  transform: "translateY(-50%)",
-  background: "none",
-  border: "none",
-  color: "#1C2E4A",
-  fontWeight: "600",
-  fontSize: 14,
-  cursor: "pointer",
-  userSelect: "none",
-};
-
-const dropdownStyle = {
-  position: "absolute",
-  top: "100%",
-  left: 0,
-  width: "100%",
-  backgroundColor: "white",
-  border: "1px solid #ccc",
-  borderRadius: 8,
-  marginTop: 4,
-  zIndex: 10,
-  boxShadow: "0 5px 15px rgba(0,0,0,0.1)",
-  maxHeight: 140,
-  overflowY: "auto",
-};
-
-const dropdownItemStyle = {
-  padding: "10px 15px",
-  cursor: "pointer",
-  userSelect: "none",
-  transition: "background-color 0.2s ease",
-};
-
-const linkStyle = {
-  color: "#1C2E4A",
-  cursor: "pointer",
-  textDecoration: "underline",
-  marginTop: 15,
-  userSelect: "none",
-  fontWeight: "600",
-};
-
-const modalOverlayStyle = {
-  position: "fixed",
-  top: 0,
-  left: 0,
-  right: 0,
-  bottom: 0,
-  backgroundColor: "rgba(0,0,0,0.4)",
-  display: "flex",
-  justifyContent: "center",
-  alignItems: "center",
-  zIndex: 9999,
-};
-
-const modalContentStyle = {
-  backgroundColor: "white",
-  padding: 30,
-  borderRadius: 12,
-  width: "90%",
-  maxWidth: 400,
-  boxShadow: "0 5px 15px rgba(0,0,0,0.3)",
-  position: "relative",
-};
+// ⬇️ Styles
+const containerStyle = { maxWidth: 600, margin: "50px auto", padding: 30, boxShadow: "0 5px 15px rgba(0,0,0,0.1)", borderRadius: 12, backgroundColor: "white", fontFamily: "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif" };
+const titleStyle = { textAlign: "center", marginBottom: 10, color: "#1C2E4A", fontWeight: "700", fontSize: 32 };
+const subTitleStyle = { textAlign: "center", marginBottom: 30, color: "#333", fontWeight: "600" };
+const labelStyle = { fontWeight: "600", marginBottom: 6, display: "block", color: "#444" };
+const inputStyle = { width: "100%", padding: "12px 16px", marginBottom: 12, borderRadius: 8, border: "1px solid #ccc", fontSize: 16, outline: "none", boxSizing: "border-box" };
+const btnStyle = { width: "100%", padding: "14px", backgroundColor: "#1C2E4A", color: "white", border: "none", borderRadius: 8, fontSize: 18, fontWeight: "600", cursor: "pointer" };
+const dropdownStyle = { position: "absolute", top: "100%", left: 0, width: "100%", backgroundColor: "white", border: "1px solid #ccc", borderRadius: 8, marginTop: 4, zIndex: 10, boxShadow: "0 5px 15px rgba(0,0,0,0.1)" };
+const dropdownItemStyle = { padding: "10px 15px", cursor: "pointer", userSelect: "none" };
+const dropdownBtnStyle = { ...inputStyle, cursor: "pointer", textAlign: "left", display: "flex", justifyContent: "space-between", alignItems: "center", backgroundColor: "white" };
+const showHideBtnStyle = { position: "absolute", right: 12, top: "50%", transform: "translateY(-50%)", background: "none", border: "none", color: "#1C2E4A", fontWeight: "600", fontSize: 14, cursor: "pointer" };
+const linkStyle = { color: "#1C2E4A", cursor: "pointer", textDecoration: "underline", marginTop: 15, userSelect: "none", fontWeight: "600" };
+const modalOverlayStyle = { position: "fixed", top: 0, left: 0, right: 0, bottom: 0, backgroundColor: "rgba(0,0,0,0.4)", display: "flex", justifyContent: "center", alignItems: "center", zIndex: 9999 };
+const modalContentStyle = { backgroundColor: "white", padding: 30, borderRadius: 12, width: "90%", maxWidth: 400, boxShadow: "0 5px 15px rgba(0,0,0,0.3)", position: "relative" };

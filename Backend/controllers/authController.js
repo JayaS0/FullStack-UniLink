@@ -99,76 +99,80 @@ import Course from "../models/Course.js";
 //   }
 // };
 
-
 export const signup = async (req, res) => {
   try {
-    const { 
-      username, 
-      email, 
-      password, 
-      role, 
-      program, 
-      semester, 
-      programs, 
-      courses 
+    const {
+      username,
+      email,
+      password,
+      role,
+      program,      // string from frontend (student)
+      semester,     // number/string from frontend (student)
+      programs,     // array of strings from frontend (faculty)
+      courses,      // array of strings from frontend (faculty)
     } = req.body;
 
+    // Validate email
     const allowedEmailDomains = ["ku.edu.np", "kusom.edu.np"];
     const emailDomain = email.split("@")[1];
-
     if (!allowedEmailDomains.includes(emailDomain)) {
       return res.status(400).json({ message: "Email must be a valid university email" });
     }
 
+    // Validate role
     if (!["student", "faculty"].includes(role)) {
       return res.status(400).json({ message: "Role must be student or faculty" });
     }
 
-    if (role === "student" && (!program || !semester)) {
-      return res.status(400).json({ message: "Program and semester required for students" });
-    }
-
-    if (role === "faculty") {
-      if (!programs || !Array.isArray(programs) || programs.length === 0) {
-        return res.status(400).json({ message: "At least one program must be assigned for faculty" });
-      }
-      if (!courses || !Array.isArray(courses) || courses.length === 0) {
-        return res.status(400).json({ message: "At least one course must be assigned for faculty" });
-      }
-    }
-
+    // Check if user exists
     const existingUser = await User.findOne({ email });
     if (existingUser) {
       return res.status(400).json({ message: "Email already registered" });
     }
 
+    // Hash password
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // ✅ Get ObjectIds for programs and courses
-    let programObjectIds = [];
-    if (role === "faculty") {
-      const programDocs = await Program.find({ name: { $in: programs.map(p => p.trim()) } }).select("_id");
-      if (!programDocs.length) {
-        return res.status(400).json({ message: "Programs not found" });
+    let programObjectId;      // for student
+    let programObjectIds = []; // for faculty
+    let courseObjectIds = [];  // for faculty
+
+    if (role === "student") {
+      if (!program || !semester) {
+        return res.status(400).json({ message: "Program and semester required for students" });
       }
-      programObjectIds = programDocs.map(p => p._id);
+      const programDoc = await Program.findOne({ name: program.trim() }).select("_id");
+      if (!programDoc) {
+        return res.status(400).json({ message: "Program not found" });
+      }
+      programObjectId = programDoc._id;
     }
 
-    let courseObjectIds = [];
     if (role === "faculty") {
-      const courseDocs = await Course.find({ courseCode: { $in: courses.map(c => c.trim()) } }).select("_id");
-      if (!courseDocs.length) {
-        return res.status(400).json({ message: "Courses not found" });
+      console.log("Programs:", programs);
+      if (!programs || programs.length === 0) {
+        return res.status(400).json({ message: "At least one program must be assigned for faculty" });
       }
+      if (!courses || courses.length === 0) {
+        return res.status(400).json({ message: "At least one course must be assigned for faculty" });
+      }
+
+      const programDocs = await Program.find({ name: { $in: programs.map(p => p.trim()) } }).select("_id");
+      if (!programDocs.length) return res.status(400).json({ message: "Programs not found" });
+      programObjectIds = programDocs.map(p => p._id);
+
+      const courseDocs = await Course.find({ courseCode: { $in: courses.map(c => c.trim()) } }).select("_id");
+      if (!courseDocs.length) return res.status(400).json({ message: "Courses not found" });
       courseObjectIds = courseDocs.map(c => c._id);
     }
 
+    // Create new user
     const newUser = new User({
       username,
       email,
       password: hashedPassword,
       role,
-      program: role === "student" ? program : undefined,
+      program: role === "student" ? programObjectId : undefined,
       semester: role === "student" ? semester : undefined,
       programs: role === "faculty" ? programObjectIds : [],
       courses: role === "faculty" ? courseObjectIds : [],
@@ -176,6 +180,7 @@ export const signup = async (req, res) => {
     });
 
     await newUser.save();
+
     res.status(201).json({ message: "User registered successfully" });
 
   } catch (error) {
@@ -223,10 +228,9 @@ export const login = async (req, res) => {
       { expiresIn: "1d" }
     );
 
-    res.json({ token });
+    res.json({ token, user });
   } catch (error) {
     console.error("Login error:", error);
     res.status(500).json({ message: "Server error" });
   }
 };
-

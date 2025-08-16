@@ -50,7 +50,7 @@ export default function App() {
         }
       />
       <Route
-        path="/login"
+        path="auth/login"
         element={
           <Login
             setUserRole={setUserRole}
@@ -60,7 +60,7 @@ export default function App() {
         }
       />
       <Route
-        path="/signup"
+        path="/auth/signup"
         element={
           <Signup
             setUserRole={setUserRole}

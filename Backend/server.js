@@ -13,11 +13,15 @@ import profileRoutes from './routes/profileRoutes.js';
 import programRoutes from './routes/programRoutes.js';
 import courseRoutes from './routes/courseRoutes.js';
 import schoolRoutes from './routes/schoolRoutes.js';
+import morgan from "morgan";
+
 
 
 dotenv.config();
 
 const app = express();  // **Initialize app first**
+
+app.use(morgan("dev")); // "dev" gives colored concise output in console
 
 app.use(cors());
 app.use(express.json());

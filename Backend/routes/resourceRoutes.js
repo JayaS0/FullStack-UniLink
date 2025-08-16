@@ -159,43 +159,45 @@ router.put('/:id', verifyToken, async (req, res) => {
   }
 });
 
-// DELETE /api/resources/:id - Delete resource (faculty/student can delete their own)
-router.delete('/:id', verifyToken,verifyAdmin, async (req, res) => {
+// DELETE /api/resources/:id - Delete resource
+router.delete('/:id', verifyToken, async (req, res) => {
   const user = req.user;
   const { id } = req.params;
 
   try {
     const resource = await Resource.findById(id);
-    if (!resource) return res.status(404).json({ message: 'Resource not found' });
+    if (!resource) {
+      return res.status(404).json({ message: 'Resource not found' });
+    }
 
     if (!resource.uploadedBy) {
       return res.status(400).json({ message: 'Resource uploadedBy is missing' });
     }
-    const userId = user.id;
-    if (!userId) {
-      return res.status(400).json({ message: 'User ID missing from token' });
-    }
 
-    if (resource.uploadedBy.toString() !== userId) {
-      return res.status(403).json({ message: 'You can only delete your own resources' });
-    }
-
-    if (user.role === 'faculty') {
-      if (!user.programs.includes(resource.program)) {
-        return res.status(403).json({ message: 'You do not have permission for this program as a faculty' });
+    // ADMIN CAN DELETE ANY RESOURCE
+    if (user.role !== 'admin') {
+      const userId = user.id;
+      if (!userId) {
+        return res.status(400).json({ message: 'User ID missing from token' });
       }
-    }
 
+      // Must be the uploader
+      if (resource.uploadedBy.toString() !== userId) {
+        return res.status(403).json({ message: 'You can only delete resources you uploaded' });
+      }
 
+      // Extra program-based checks if needed
+      if (user.role === 'faculty') {
+        if (!user.programs.includes(resource.program.toString())) {
+          return res.status(403).json({ message: 'You do not have permission for this program as a faculty' });
+        }
+      }
 
-    user.program = user.programs[0]?.toString();
-    const resourceProgram = resource.program.toString();
-
-    // console.log('user program:', user.programs[0]);
-    // console.log('resource program:', resourceProgram);
-    if (user.role === 'student') {
-      if (user.program!== resourceProgram) {
-        return res.status(403).json({ message: 'You do not have permission for this program as a student' });
+      if (user.role === 'student') {
+        const userProgram = user.programs[0]?.toString();
+        if (userProgram !== resource.program.toString()) {
+          return res.status(403).json({ message: 'You do not have permission for this program as a student' });
+        }
       }
     }
 
@@ -210,9 +212,9 @@ router.delete('/:id', verifyToken,verifyAdmin, async (req, res) => {
     }
 
     await resource.deleteOne();
-    res.json({ message: 'Resource deleted' });
+    res.json({ message: 'Resource deleted successfully' });
   } catch (error) {
-    console.error(error);
+    console.error('Error deleting resource:', error);
     res.status(500).json({ message: 'Server error' });
   }
 });
