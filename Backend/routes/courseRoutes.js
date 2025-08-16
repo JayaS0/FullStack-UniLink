@@ -6,6 +6,43 @@ import { verifyToken, verifyAdmin } from "../middleware/authMiddleware.js";
 
 const router = express.Router();
 
+/**
+ * @openapi
+ * /api/courses:
+ *   post:
+ *     tags: [Courses]
+ *     summary: Create a new course (admin only)
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               courseCode:
+ *                 type: string
+ *               courseName:
+ *                 type: string
+ *               description:
+ *                 type: string
+ *               semester:
+ *                 type: integer
+ *               programName:
+ *                 type: string
+ *               schoolName:
+ *                 type: string
+ *     responses:
+ *       201:
+ *         description: Course created
+ *       400:
+ *         description: Validation or duplication error
+ *       404:
+ *         description: Program or School not found
+ *       500:
+ *         description: Server error
+ */
 // Create a new course (admin only)
 router.post("/", verifyToken, verifyAdmin, async (req, res) => {
   const {
@@ -65,6 +102,20 @@ router.post("/", verifyToken, verifyAdmin, async (req, res) => {
   }
 });
 
+/**
+ * @openapi
+ * /api/courses:
+ *   get:
+ *     tags: [Courses]
+ *     summary: Get all courses (authenticated)
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: List of courses
+ *       500:
+ *         description: Server error
+ */
 // Get all courses (any logged-in user)
 router.get("/", verifyToken, async (req, res) => {
   try {
@@ -76,6 +127,28 @@ router.get("/", verifyToken, async (req, res) => {
   }
 });
 
+/**
+ * @openapi
+ * /api/courses/{id}:
+ *   get:
+ *     tags: [Courses]
+ *     summary: Get a course by ID
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Course
+ *       404:
+ *         description: Course not found
+ *       500:
+ *         description: Server error
+ */
 // Get single course by course ID
 router.get("/:id", verifyToken, async (req, res) => {
   try {
@@ -88,6 +161,34 @@ router.get("/:id", verifyToken, async (req, res) => {
   }
 });
 
+/**
+ * @openapi
+ * /api/courses/{id}:
+ *   put:
+ *     tags: [Courses]
+ *     summary: Update a course by ID (admin only)
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       required: false
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *     responses:
+ *       200:
+ *         description: Course updated
+ *       404:
+ *         description: Course not found
+ *       500:
+ *         description: Server error
+ */
 // Update course by ID(admin only)
 router.put("/:id", verifyToken, verifyAdmin, async (req, res) => {
   const {
@@ -139,6 +240,28 @@ router.put("/:id", verifyToken, verifyAdmin, async (req, res) => {
   }
 });
 
+/**
+ * @openapi
+ * /api/courses/{id}:
+ *   delete:
+ *     tags: [Courses]
+ *     summary: Delete a course by ID (admin only)
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Course deleted
+ *       404:
+ *         description: Course not found
+ *       500:
+ *         description: Server error
+ */
 // Delete course by ID (admin only)
 router.delete("/:id", verifyToken, verifyAdmin, async (req, res) => {
   try {

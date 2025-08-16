@@ -4,57 +4,52 @@ import Review from '../models/Review.js';
 
 const router = express.Router();
 
-// // POST review — only students can submit
-// router.post('/', verifyToken, verifyStudent, async (req, res) => {
-//   const {
-//     courseId,
-//     courseName,
-//     facultyId,
-//     facultyName,
-//     rating,
-//     comment,
-//     semester,
-//     program,
-//   } = req.body;
-
-//   // Basic field validation
-//   if (!courseId || !facultyId || !rating || !comment || !semester || !program) {
-//     return res.status(400).json({ message: 'All fields are required' });
-//   }
-
-//   // Students can only submit reviews for their assigned program and semester
-//   if (
-//     req.user.program.toString() !== program ||
-//     req.user.semester !== Number(semester)
-//   ) {
-//     return res.status(403).json({
-//       message: 'You can only submit reviews for your own program and semester',
-//     });
-//   }
-
-//   try {
-//     const newReview = new Review({
-//       courseId,
-//       courseName,
-//       facultyId,
-//       facultyName,
-//       rating,
-//       comment,
-//       semester,
-//       program,
-//       user: req.user.id, // store reviewer ID
-//     });
-
-//     await newReview.save();
-
-//     res.status(201).json({ message: 'Review submitted successfully' });
-//   } catch (error) {
-//     console.error('Error saving review:', error);
-//     res.status(500).json({ message: 'Server error' });
-//   }
-// });
-
-// POST review — only students can submit
+/**
+ * @openapi
+ * /api/reviews:
+ *   post:
+ *     tags: [Reviews]
+ *     summary: Submit a review (students only)
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [courseId, facultyId, rating, comment, semester, program]
+ *             properties:
+ *               courseId:
+ *                 type: string
+ *               courseName:
+ *                 type: string
+ *               facultyId:
+ *                 type: string
+ *               facultyName:
+ *                 type: string
+ *               rating:
+ *                 type: number
+ *                 minimum: 1
+ *                 maximum: 5
+ *               comment:
+ *                 type: string
+ *               semester:
+ *                 type: integer
+ *               program:
+ *                 type: string
+ *     responses:
+ *       201:
+ *         description: Review submitted successfully
+ *       400:
+ *         description: Validation error
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden
+ *       500:
+ *         description: Server error
+ */
 router.post('/', verifyToken, verifyStudent, async (req, res) => {
   const {
     courseId,
@@ -82,9 +77,7 @@ router.post('/', verifyToken, verifyStudent, async (req, res) => {
     !req.user.programs.includes(program) || // check program array
     req.user.semester !== Number(semester)
   ) {
-    return res.status(403).json({
-      message: 'You can only submit reviews for your own program and semester',
-    });
+    return res.status(403).json({ message: 'You can only submit reviews for your own program and semester' });
   }
 
   try {
@@ -111,6 +104,24 @@ router.post('/', verifyToken, verifyStudent, async (req, res) => {
 
 
 // GET reviews — role-based filtering and anonymization
+/**
+ * @openapi
+ * /api/reviews:
+ *   get:
+ *     tags: [Reviews]
+ *     summary: Get reviews (role-based filtering)
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: List of reviews
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden
+ *       500:
+ *         description: Server error
+ */
 router.get('/', verifyToken, async (req, res) => {
   try {
     let reviews;

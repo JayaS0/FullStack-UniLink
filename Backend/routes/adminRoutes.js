@@ -4,6 +4,20 @@ import { verifyToken, verifyAdmin } from '../middleware/authMiddleware.js';
 
 const router = express.Router();
 
+/**
+ * @openapi
+ * /api/admin/users:
+ *   get:
+ *     tags: [Admin]
+ *     summary: Get all users (admin only)
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: List of users
+ *       500:
+ *         description: Server error
+ */
 //get all users (admin only)
 router.get('/users', verifyToken, verifyAdmin, async (req, res) => {
   try {
@@ -16,7 +30,28 @@ router.get('/users', verifyToken, verifyAdmin, async (req, res) => {
 });
 
 // Get user by ID (admin only)
-
+/**
+ * @openapi
+ * /api/admin/users/{id}:
+ *   get:
+ *     tags: [Admin]
+ *     summary: Get user by ID (admin only)
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: User object
+ *       404:
+ *         description: User not found
+ *       500:
+ *         description: Server error
+ */
 router.get('/users/:id', verifyToken, verifyAdmin, async (req, res) => {
   try {
     const user = await User.findById(req.params.id).select('-password');
@@ -28,6 +63,34 @@ router.get('/users/:id', verifyToken, verifyAdmin, async (req, res) => {
   }
 });
 
+/**
+ * @openapi
+ * /api/admin/users/{id}:
+ *   put:
+ *     tags: [Admin]
+ *     summary: Update user details (admin only)
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       required: false
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *     responses:
+ *       200:
+ *         description: User updated successfully
+ *       404:
+ *         description: User not found
+ *       500:
+ *         description: Server error
+ */
 //  update user details
 router.put('/users/:id', verifyToken, verifyAdmin, async (req, res) => {
   try {
@@ -54,6 +117,37 @@ router.put('/users/:id', verifyToken, verifyAdmin, async (req, res) => {
   }
 });
 
+/**
+ * @openapi
+ * /api/admin/users/{id}/reset-password:
+ *   post:
+ *     tags: [Admin]
+ *     summary: Reset a user's password (admin only)
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               newPassword:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Password reset successfully
+ *       404:
+ *         description: User not found
+ *       500:
+ *         description: Server error
+ */
 //  reset password
 router.post('/users/:id/reset-password', verifyToken, verifyAdmin, async (req, res) => {
   try {
@@ -74,6 +168,28 @@ router.post('/users/:id/reset-password', verifyToken, verifyAdmin, async (req, r
 });
 
 
+/**
+ * @openapi
+ * /api/admin/users/{id}:
+ *   delete:
+ *     tags: [Admin]
+ *     summary: Delete a user by ID (admin only)
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: User deleted successfully
+ *       404:
+ *         description: User not found
+ *       500:
+ *         description: Server error
+ */
 // Delete a user by ID (admin only)
 router.delete('/users/:id', verifyToken, verifyAdmin, async (req, res) => {
   try {
@@ -86,6 +202,32 @@ router.delete('/users/:id', verifyToken, verifyAdmin, async (req, res) => {
   }
 });
 
+/**
+ * @openapi
+ * /api/admin/promote-semester:
+ *   post:
+ *     tags: [Admin]
+ *     summary: Promote students by one semester (admin only)
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: false
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               program:
+ *                 type: string
+ *                 description: If provided, only promote students in this program
+ *     responses:
+ *       200:
+ *         description: Promotion result
+ *       404:
+ *         description: No students found
+ *       500:
+ *         description: Server error
+ */
 // Promote students by one semester (optional: by program)
 router.post('/promote-semester', verifyToken, verifyAdmin, async (req, res) => {
   try {

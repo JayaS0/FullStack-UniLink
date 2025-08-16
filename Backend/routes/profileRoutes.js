@@ -32,6 +32,22 @@ const upload = multer({
   }
 });
 
+/**
+ * @openapi
+ * /api/profile:
+ *   get:
+ *     tags: [Profile]
+ *     summary: Get current user profile
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Profile object
+ *       404:
+ *         description: User not found
+ *       500:
+ *         description: Server error
+ */
 // Get current user profile (without password)
 router.get('/', verifyToken, async (req, res) => {
   try {
@@ -44,6 +60,34 @@ router.get('/', verifyToken, async (req, res) => {
   }
 });
 
+/**
+ * @openapi
+ * /api/profile/picture:
+ *   put:
+ *     tags: [Profile]
+ *     summary: Upload or update profile picture
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         multipart/form-data:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               profilePic:
+ *                 type: string
+ *                 format: binary
+ *     responses:
+ *       200:
+ *         description: Profile picture updated
+ *       400:
+ *         description: No file uploaded
+ *       404:
+ *         description: User not found
+ *       500:
+ *         description: Server error
+ */
 // Upload/update profile picture
 router.put('/picture', verifyToken, upload.single('profilePic'), async (req, res) => {
   try {
@@ -68,6 +112,37 @@ router.put('/picture', verifyToken, upload.single('profilePic'), async (req, res
   }
 });
 
+/**
+ * @openapi
+ * /api/profile/password:
+ *   put:
+ *     tags: [Profile]
+ *     summary: Change password
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               oldPassword:
+ *                 type: string
+ *               newPassword:
+ *                 type: string
+ *               confirmPassword:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Password changed successfully
+ *       400:
+ *         description: Validation error
+ *       404:
+ *         description: User not found
+ *       500:
+ *         description: Server error
+ */
 // PUT /api/profile/password - Change password
 router.put('/password', verifyToken, async (req, res) => {
   try {

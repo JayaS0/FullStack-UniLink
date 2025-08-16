@@ -4,6 +4,46 @@ import { verifyToken } from '../middleware/authMiddleware.js';
 
 const router = express.Router();
 
+/**
+ * @openapi
+ * /api/listings:
+ *   post:
+ *     tags: [Listings]
+ *     summary: Create a new listing (admin and faculty)
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               title:
+ *                 type: string
+ *               description:
+ *                 type: string
+ *               link:
+ *                 type: string
+ *                 format: uri
+ *               mediaUrls:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *               company:
+ *                 type: string
+ *               category:
+ *                 type: string
+ *     responses:
+ *       201:
+ *         description: Listing created
+ *       400:
+ *         description: Validation error
+ *       403:
+ *         description: Forbidden
+ *       500:
+ *         description: Server error
+ */
 // Create a new listing (admin and faculty)
 router.post('/', verifyToken, async (req, res) => {
   const user = req.user;
@@ -41,6 +81,20 @@ router.post('/', verifyToken, async (req, res) => {
   }
 });
 
+/**
+ * @openapi
+ * /api/listings:
+ *   get:
+ *     tags: [Listings]
+ *     summary: Get all listings (any authenticated user)
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: List of listings
+ *       500:
+ *         description: Server error
+ */
 // Get all listings (any authenticated user)
 router.get('/', verifyToken, async (req, res) => {
   try {
@@ -52,6 +106,28 @@ router.get('/', verifyToken, async (req, res) => {
   }
 });
 
+/**
+ * @openapi
+ * /api/listings/{id}:
+ *   get:
+ *     tags: [Listings]
+ *     summary: Get listing by ID
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Listing
+ *       404:
+ *         description: Not found
+ *       500:
+ *         description: Server error
+ */
 // Get listing by ID
 router.get('/:id', verifyToken, async (req, res) => {
   try {
@@ -66,6 +142,36 @@ router.get('/:id', verifyToken, async (req, res) => {
   }
 });
 
+/**
+ * @openapi
+ * /api/listings/{id}:
+ *   put:
+ *     tags: [Listings]
+ *     summary: Update listing by ID
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       required: false
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *     responses:
+ *       200:
+ *         description: Listing updated
+ *       403:
+ *         description: Forbidden
+ *       404:
+ *         description: Not found
+ *       500:
+ *         description: Server error
+ */
 // Update listing by ID
 router.put('/:id', verifyToken, async (req, res) => {
   const user = req.user;
@@ -103,6 +209,30 @@ router.put('/:id', verifyToken, async (req, res) => {
   }
 });
 
+/**
+ * @openapi
+ * /api/listings/{id}:
+ *   delete:
+ *     tags: [Listings]
+ *     summary: Delete listing by ID
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Listing deleted
+ *       403:
+ *         description: Forbidden
+ *       404:
+ *         description: Not found
+ *       500:
+ *         description: Server error
+ */
 // Delete listing by ID
 router.delete('/:id', verifyToken, async (req, res) => {
   const user = req.user;

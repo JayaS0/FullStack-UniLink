@@ -27,6 +27,48 @@ const facultyCanAccessProgram = (user, program) => {
   return true;
 };
 
+/**
+ * @openapi
+ * /api/resources:
+ *   post:
+ *     tags: [Resources]
+ *     summary: Upload multiple resource files
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         multipart/form-data:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               title:
+ *                 type: string
+ *               description:
+ *                 type: string
+ *               type:
+ *                 type: string
+ *               program:
+ *                 type: string
+ *               semester:
+ *                 type: string
+ *               relatedCourse:
+ *                 type: string
+ *               files:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *                   format: binary
+ *     responses:
+ *       201:
+ *         description: Resource uploaded
+ *       400:
+ *         description: Validation error
+ *       403:
+ *         description: Forbidden
+ *       500:
+ *         description: Server error
+ */
 // POST /api/resources - Upload multiple files (Drive-style)
 router.post('/', verifyToken, upload.array('files', 20), async (req, res) => {
   const user = req.user;
@@ -91,6 +133,28 @@ router.post('/', verifyToken, upload.array('files', 20), async (req, res) => {
 });
 
 
+/**
+ * @openapi
+ * /api/resources/{program}:
+ *   get:
+ *     tags: [Resources]
+ *     summary: Get all resources by program
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: program
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: List of resources
+ *       403:
+ *         description: Forbidden
+ *       500:
+ *         description: Server error
+ */
 // GET /api/resources/:program - Get all resources by program
 router.get('/:program', verifyToken, async (req, res) => {
   const user = req.user;
@@ -112,6 +176,38 @@ router.get('/:program', verifyToken, async (req, res) => {
 });
 
 
+/**
+ * @openapi
+ * /api/resources/{id}:
+ *   put:
+ *     tags: [Resources]
+ *     summary: Update a resource by ID
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       required: false
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *     responses:
+ *       200:
+ *         description: Resource updated
+ *       400:
+ *         description: Bad request
+ *       403:
+ *         description: Forbidden
+ *       404:
+ *         description: Not found
+ *       500:
+ *         description: Server error
+ */
 // PUT /api/resources/:id - Update a resource (resource id)
 router.put('/:id', verifyToken, async (req, res) => {
   const user = req.user;
@@ -159,6 +255,32 @@ router.put('/:id', verifyToken, async (req, res) => {
   }
 });
 
+/**
+ * @openapi
+ * /api/resources/{id}:
+ *   delete:
+ *     tags: [Resources]
+ *     summary: Delete a resource by ID
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Resource deleted successfully
+ *       400:
+ *         description: Bad request
+ *       403:
+ *         description: Forbidden
+ *       404:
+ *         description: Not found
+ *       500:
+ *         description: Server error
+ */
 // DELETE /api/resources/:id - Delete resource
 router.delete('/:id', verifyToken, async (req, res) => {
   const user = req.user;

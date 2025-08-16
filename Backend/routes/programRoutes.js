@@ -25,6 +25,39 @@ const db = mongoose.connection;
 // });
 
 
+/**
+ * @openapi
+ * /api/programs:
+ *   post:
+ *     tags: [Programs]
+ *     summary: Create a new program (admin only)
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               programName:
+ *                 type: string
+ *               semesters:
+ *                 type: array
+ *                 items:
+ *                   type: integer
+ *               schoolName:
+ *                 type: string
+ *     responses:
+ *       201:
+ *         description: Program created
+ *       400:
+ *         description: Validation error
+ *       404:
+ *         description: School not found
+ *       500:
+ *         description: Server error
+ */
 // Create a new program(only admin can create)
 router.post('/', verifyToken, verifyAdmin, async (req, res) => {
   const { programName, semesters, schoolName } = req.body;
@@ -57,6 +90,20 @@ router.post('/', verifyToken, verifyAdmin, async (req, res) => {
 });
 
 
+/**
+ * @openapi
+ * /api/programs:
+ *   get:
+ *     tags: [Programs]
+ *     summary: Get all programs (authenticated)
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: List of programs
+ *       500:
+ *         description: Server error
+ */
 // Get all programs
 router.get('/', verifyToken, async (req, res) => {
   try {
@@ -68,6 +115,37 @@ router.get('/', verifyToken, async (req, res) => {
   }
 });
 
+/**
+ * @openapi
+ * /api/programs/{id}/semester:
+ *   put:
+ *     tags: [Programs]
+ *     summary: Add one or more semesters to a program (admin only)
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               semester:
+ *                 description: Single number or array of numbers
+ *     responses:
+ *       200:
+ *         description: Program updated
+ *       404:
+ *         description: Program not found
+ *       500:
+ *         description: Server error
+ */
 // Add a semester to a program  (programid)
 router.put('/:id/semester', verifyToken, verifyAdmin, async (req, res) => {
   let { semester } = req.body;
@@ -93,6 +171,28 @@ router.put('/:id/semester', verifyToken, verifyAdmin, async (req, res) => {
 });
 
 
+/**
+ * @openapi
+ * /api/programs/{id}:
+ *   delete:
+ *     tags: [Programs]
+ *     summary: Delete a program (admin only)
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Program deleted
+ *       404:
+ *         description: Program not found
+ *       500:
+ *         description: Server error
+ */
 // Delete a program
 router.delete('/:id', verifyToken, verifyAdmin, async (req, res) => {
   try {
