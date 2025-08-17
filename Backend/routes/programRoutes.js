@@ -104,13 +104,24 @@ router.post('/', verifyToken, verifyAdmin, async (req, res) => {
  *       500:
  *         description: Server error
  */
-// Get all programs
+// Get all programs (authenticated)
 router.get('/', verifyToken, async (req, res) => {
   try {
     const programs = await Program.find();
     res.json(programs);
   } catch (error) {
     console.error('Error fetching programs:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// Public: Get all programs (no auth) for signup flows
+router.get('/public', async (req, res) => {
+  try {
+    const programs = await Program.find().select('name semesters');
+    res.json(programs);
+  } catch (error) {
+    console.error('Error fetching public programs:', error);
     res.status(500).json({ message: 'Server error' });
   }
 });

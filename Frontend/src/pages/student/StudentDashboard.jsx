@@ -1,5 +1,6 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { getData } from "../../api/api";
 
 const colors = {
   midnightBlue: "#1C2E4A",
@@ -12,21 +13,57 @@ const colors = {
 export default function StudentDashboard({ username, userProgram }) {
   const navigate = useNavigate();
 
-  // Dummy data
-  const listings = [
-    { id: 1, title: "Job: Developer", company: "Tech Corp", category: "Job", date: "2025-07-10" },
-    { id: 2, title: "Intern: Marketing", company: "Market Masters", category: "Internship", date: "2025-07-09" },
-  ];
+  const [listings, setListings] = useState([]);
+  const [reviews, setReviews] = useState([]);
+  const [resources, setResources] = useState([]);
 
-  const reviews = [
-    { id: 1, courseName: "CS101", comment: "Great course!", facultyName: "Prof. Smith", date: "2025-07-08" },
-    { id: 2, courseName: "FA201", comment: "Informative", facultyName: "Prof. Doe", date: "2025-07-07" },
-  ];
+  useEffect(() => {
+    const fetchAll = async () => {
+      try {
+        // Listings
+        const listingsRes = await getData("listings");
+        const mappedListings = (listingsRes?.data || []).map((l) => ({
+          id: l._id,
+          title: l.title,
+          company: l.company,
+          category: l.category,
+          date: l.createdAt || new Date().toISOString(),
+        }));
+        setListings(mappedListings);
 
-  const resources = [
-    { id: 1, title: "BBIS Notes", program: "BBIS", semester: 1, course: "Intro to IT", date: "2025-07-10", uploadedBy: "John Doe" },
-    { id: 2, title: "BBA Guide", program: "BBA", semester: 2, course: "Marketing 101", date: "2025-07-11", uploadedBy: "Jane Smith" },
-  ];
+        // Reviews
+        const reviewsRes = await getData("reviews");
+        const mappedReviews = (reviewsRes?.data || []).map((r) => ({
+          id: r._id,
+          courseName: r.courseName,
+          comment: r.comment,
+          facultyName: r.facultyName,
+          date: r.createdAt || new Date().toISOString(),
+        }));
+        setReviews(mappedReviews);
+
+        // Resources (by program)
+        const savedUser = JSON.parse(localStorage.getItem("currentUser") || "null");
+        const programId = savedUser?.program || savedUser?.programs?.[0];
+        if (programId) {
+          const resourcesRes = await getData(`resources/${programId}`);
+          const mappedResources = (resourcesRes?.data || []).map((r) => ({
+            id: r._id,
+            title: r.title,
+            program: r.program,
+            semester: r.semester,
+            course: r.relatedCourse,
+            date: r.createdAt || new Date().toISOString(),
+            uploadedBy: r.uploadedBy?.username || "Unknown",
+          }));
+          setResources(mappedResources);
+        }
+      } catch (error) {
+        console.error("Failed to load dashboard data:", error);
+      }
+    };
+    fetchAll();
+  }, []);
 
   const sortByDateDesc = (arr) => [...arr].sort((a, b) => new Date(b.date) - new Date(a.date)).slice(0, 3);
 

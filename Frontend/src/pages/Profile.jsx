@@ -1,13 +1,14 @@
-import { useState, useRef } from "react";
+import { useEffect, useState, useRef } from "react";
+import { getData, putData, uploadFormData } from "../api/api";
 
 export default function StudentProfile() {
   const fileInputRef = useRef(null);
 
   // Profile data states (mock or load from API)
   const [profilePic, setProfilePic] = useState(null);
-  const [username, setUsername] = useState("student123");
-  const [email, setEmail] = useState("student@example.com");
-  const [role, setRole] = useState("student");
+  const [username, setUsername] = useState("");
+  const [email, setEmail] = useState("");
+  const [role, setRole] = useState("");
 
   // UI states
   const [showPicOptions, setShowPicOptions] = useState(false);
@@ -18,16 +19,46 @@ export default function StudentProfile() {
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
 
-  // Handle profile pic upload
-  const handleFileChange = (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onload = (event) => {
-        setProfilePic(event.target.result);
-        setShowPicOptions(false);
-      };
-      reader.readAsDataURL(file);
+  // Initial load: fetch profile from API
+  useEffect(() => {
+    const fetchProfile = async () => {
+      try {
+        const res = await getData("profile");
+        const user = res?.data;
+        if (user) {
+          setUsername(user.username || "");
+          setEmail(user.email || "");
+          setRole(user.role || "");
+          setProfilePic(user.profilePic ? prefixUploadUrl(user.profilePic) : null);
+        }
+      } catch (err) {
+        console.error("Failed to load profile:", err);
+      }
+    };
+    fetchProfile();
+  }, []);
+
+  const prefixUploadUrl = (relative) => {
+    const origin = (process.env.API_URL || "").replace(/\/api$/, "");
+    return relative?.startsWith("http") ? relative : origin + relative;
+  };
+
+  // Handle profile pic upload (to backend)
+  const handleFileChange = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    try {
+      const form = new FormData();
+      form.append("profilePic", file);
+      const res = await uploadFormData("profile/picture", form);
+      const url = res?.data?.profilePic;
+      if (url) {
+        setProfilePic(prefixUploadUrl(url));
+      }
+      setShowPicOptions(false);
+    } catch (err) {
+      console.error("Profile picture upload failed:", err);
+      alert(err.response?.data?.message || "Failed to upload profile picture");
     }
   };
 
@@ -43,7 +74,7 @@ export default function StudentProfile() {
   };
 
   // Password change submit (frontend only)
-  const submitPasswordChange = (e) => {
+  const submitPasswordChange = async (e) => {
     e.preventDefault();
     if (!oldPassword || !newPassword || !confirmPassword) {
       alert("Please fill all password fields.");
@@ -53,11 +84,17 @@ export default function StudentProfile() {
       alert("New password and confirm password do not match.");
       return;
     }
-    alert("Password changed successfully!");
-    setOldPassword("");
-    setNewPassword("");
-    setConfirmPassword("");
-    setShowPasswordModal(false);
+    try {
+      await putData("profile/password", { oldPassword, newPassword, confirmPassword });
+      alert("Password changed successfully!");
+      setOldPassword("");
+      setNewPassword("");
+      setConfirmPassword("");
+      setShowPasswordModal(false);
+    } catch (err) {
+      console.error("Password change failed:", err);
+      alert(err.response?.data?.message || "Failed to change password");
+    }
   };
 
   return (

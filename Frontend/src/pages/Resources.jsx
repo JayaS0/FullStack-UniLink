@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { getData, postFormData, putData, deleteData } from "../api/api";
 
 // Example programs data
 const programsData = [
@@ -8,11 +9,13 @@ const programsData = [
   { programName: "Bachelor of Architecture", semesters: 10, schoolName: "School of Arts & Design" },
 ];
 
-// Simulated current user info for demo purpose
-const currentUser = {
-  id: "user123",
-  role: "faculty", // "admin", "faculty", or "student"
-  name: "John Doe",
+// Derive current user from localStorage
+const getCurrentUser = () => {
+  try {
+    return JSON.parse(localStorage.getItem("currentUser") || "null");
+  } catch {
+    return null;
+  }
 };
 
 export default function StudentResourcesPage() {
@@ -23,38 +26,75 @@ export default function StudentResourcesPage() {
   const [selectedCourse, setSelectedCourse] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
 
-  // Resources list (simulate fetch or API data)
-  const [resources, setResources] = useState([
-    {
-      id: "r1",
-      title: "BBIS Notes 1",
-      description: "First semester notes for BBIS",
-      type: "Notes",
-      program: "BBIS",
-      semester: 1,
-      course: "Introduction to IT",
-      date: "2025-07-10",
-      uploadedBy: "user123",
-      uploadedByName: "John Doe",
-      files: [
-        { id: "f1", url: "https://example.com/file1.pdf", name: "file1.pdf" },
-        { id: "f2", url: "https://example.com/file2.pdf", name: "file2.pdf" },
-      ],
-    },
-    {
-      id: "r2",
-      title: "BBA Guide 2",
-      description: "Guide for BBA semester 2",
-      type: "Guide",
-      program: "BBA",
-      semester: 2,
-      course: "Marketing 101",
-      date: "2025-07-11",
-      uploadedBy: "user456",
-      uploadedByName: "Jane Smith",
-      files: [{ id: "f3", url: "https://example.com/file3.pdf", name: "file3.pdf" }],
-    },
-  ]);
+  // Resources list
+  const [resources, setResources] = useState([]);
+
+  // Fetch resources for the current student's/faculty's program on load
+  useEffect(() => {
+    const fetchResources = async () => {
+      try {
+        const savedUser = getCurrentUser();
+        const programId = savedUser?.program || savedUser?.programs?.[0];
+        if (!programId) return;
+
+        const res = await getData(`resources/${programId}`);
+
+        const backendOrigin = (process.env.API_URL || "").replace(/\/api$/, "");
+        const mapped = (res?.data || []).map((r) => ({
+          id: r._id,
+          title: r.title,
+          description: r.description,
+          type: r.type,
+          program: r.program,
+          semester: r.semester,
+          course: r.relatedCourse,
+          date: r.createdAt ? r.createdAt.slice(0, 10) : "",
+          uploadedBy: r.uploadedBy?._id,
+          uploadedByName: r.uploadedBy?.username,
+          files: (r.fileUrls || []).map((url, i) => ({
+            id: `${r._id}-${i}`,
+            url: url.startsWith("http") ? url : `${backendOrigin}${url}`,
+            name: url.split("/").pop(),
+          })),
+        }));
+        setResources(mapped);
+      } catch (error) {
+        console.error("Failed to fetch resources:", error);
+      }
+    };
+    fetchResources();
+  }, []);
+
+  // Reusable fetch to refresh list after actions
+  const fetchResources = async () => {
+    try {
+      const savedUser = getCurrentUser();
+      const programId = savedUser?.program || savedUser?.programs?.[0];
+      if (!programId) return;
+      const res = await getData(`resources/${programId}`);
+      const backendOrigin = (process.env.API_URL || "").replace(/\/api$/, "");
+      const mapped = (res?.data || []).map((r) => ({
+        id: r._id,
+        title: r.title,
+        description: r.description,
+        type: r.type,
+        program: r.program,
+        semester: r.semester,
+        course: r.relatedCourse,
+        date: r.createdAt ? r.createdAt.slice(0, 10) : "",
+        uploadedBy: r.uploadedBy?._id,
+        uploadedByName: r.uploadedBy?.username,
+        files: (r.fileUrls || []).map((url, i) => ({
+          id: `${r._id}-${i}`,
+          url: url.startsWith("http") ? url : `${backendOrigin}${url}`,
+          name: url.split("/").pop(),
+        })),
+      }));
+      setResources(mapped);
+    } catch (err) {
+      console.error("Failed to fetch resources:", err);
+    }
+  };
 
   // Modal states
   const [showDetailModal, setShowDetailModal] = useState(false);
@@ -142,77 +182,71 @@ export default function StudentResourcesPage() {
     setFormFiles(Array.from(e.target.files));
   }
 
-  // Handle form submit (upload or edit)
-  function handleSubmitForm(e) {
+  // Handle form submit (upload or edit via API)
+  async function handleSubmitForm(e) {
     e.preventDefault();
 
-    if (!formTitle || !formType || !formProgram || !formSemester || !formCourse) {
+    if (!formTitle || !formType || !formCourse) {
       alert("Please fill in all required fields");
       return;
     }
 
-    if (editMode) {
-      // Edit existing resource (simulate update)
-      setResources((prev) =>
-        prev.map((res) =>
-          res.id === formResourceId
-            ? {
-                ...res,
-                title: formTitle,
-                description: formDescription,
-                type: formType,
-                program: formProgram,
-                semester: formSemester,
-                course: formCourse,
-                // For simplicity, append new uploaded files info with fake IDs/URLs
-                files: [
-                  ...res.files,
-                  ...formFiles.map((f, i) => ({
-                    id: `newfile${Date.now()}${i}`,
-                    url: URL.createObjectURL(f), // for demo only, in real use backend URLs
-                    name: f.name,
-                  })),
-                ],
-              }
-            : res
-        )
-      );
-      alert("Resource updated!");
-    } else {
-      // Add new resource (simulate save)
-      const newResource = {
-        id: `r${Date.now()}`,
-        title: formTitle,
-        description: formDescription,
-        type: formType,
-        program: formProgram,
-        semester: formSemester,
-        course: formCourse,
-        date: new Date().toISOString().split("T")[0],
-        uploadedBy: currentUser.id,
-        uploadedByName: currentUser.name,
-        files: formFiles.map((f, i) => ({
-          id: `file${Date.now()}${i}`,
-          url: URL.createObjectURL(f),
-          name: f.name,
-        })),
-      };
-      setResources((prev) => [newResource, ...prev]);
-      alert("Resource uploaded!");
-    }
+    const savedUser = getCurrentUser();
+    const programId = savedUser?.program || savedUser?.programs?.[0];
+    const semesterFromUser = savedUser?.semester;
 
-    setShowForm(false);
+    try {
+      if (editMode && formResourceId) {
+        // Update metadata (no file upload on edit here)
+        await putData(`resources/${formResourceId}`, {
+          title: formTitle,
+          description: formDescription,
+          type: formType,
+          program: programId,
+          semester: semesterFromUser ?? formSemester,
+          relatedCourse: formCourse,
+        });
+        alert("Resource updated!");
+      } else {
+        // Create new with file uploads
+        const formData = new FormData();
+        formData.append("title", formTitle);
+        if (formDescription) formData.append("description", formDescription);
+        formData.append("type", formType);
+        formData.append("program", programId);
+        if (semesterFromUser ?? formSemester) formData.append("semester", String(semesterFromUser ?? formSemester));
+        if (formCourse) formData.append("relatedCourse", formCourse);
+        formFiles.forEach((file) => formData.append("files", file));
+
+        await postFormData(`resources`, formData);
+        alert("Resource uploaded!");
+      }
+
+      // Refresh list
+      await fetchResources();
+      setShowForm(false);
+    } catch (err) {
+      console.error("Failed to submit resource:", err);
+      alert(err.response?.data?.message || "Failed to submit resource.");
+    }
   }
 
   // Handle delete resource with permission check
-  function handleDelete(resource) {
+  async function handleDelete(resource) {
     if (
-      currentUser.role === "admin" ||
-      (resource.uploadedBy === currentUser.id && (currentUser.role === "faculty" || currentUser.role === "student"))
+      (getCurrentUser()?.role === "admin") ||
+      (resource.uploadedBy === (getCurrentUser()?._id || getCurrentUser()?.id) &&
+        (["faculty", "student"].includes(getCurrentUser()?.role || "")))
     ) {
       if (window.confirm("Are you sure you want to delete this resource?")) {
-        setResources((prev) => prev.filter((r) => r.id !== resource.id));
-        if (detailResource?.id === resource.id) closeDetailModal();
+        try {
+          await deleteData(`resources/${resource.id}`);
+          await fetchResources();
+          if (detailResource?.id === resource.id) closeDetailModal();
+        } catch (err) {
+          console.error("Delete failed:", err);
+          alert(err.response?.data?.message || "Failed to delete resource");
+        }
       }
     } else {
       alert("You don't have permission to delete this resource.");
@@ -405,9 +439,10 @@ export default function StudentResourcesPage() {
       >
         {filteredResources.length > 0 ? (
           filteredResources.map((res) => {
+            const savedUser = getCurrentUser();
             const canEditOrDelete =
-              currentUser.role === "admin" ||
-              (res.uploadedBy === currentUser.id && (currentUser.role === "faculty" || currentUser.role === "student"));
+              savedUser?.role === "admin" ||
+              (res.uploadedBy === (savedUser?._id || savedUser?.id) && (["faculty", "student"].includes(savedUser?.role)));
             return (
               <div
                 key={res.id}

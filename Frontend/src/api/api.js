@@ -25,7 +25,7 @@
 // src/api/api.js
 import axios from 'axios';
 
-const API_URL = 'http://localhost:1000/api'; // replace with your backend URL
+const API_URL = process.env.API_URL || 'http://localhost:5000/api';
 
 const apiClient = axios.create({
   baseURL: API_URL,
@@ -47,3 +47,21 @@ export const postData = (endpoint, data) => apiClient.post(endpoint, data);
 
 // GET request helper (optional, if needed)
 export const getData = (endpoint) => apiClient.get(endpoint);
+
+// PUT request helper
+export const putData = (endpoint, data, config) => apiClient.put(endpoint, data, config);
+
+// Upload form-data (multipart)
+export const uploadFormData = (endpoint, formData) =>
+  apiClient.put(endpoint, formData, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  });
+
+// POST form-data (multipart)
+export const postFormData = (endpoint, formData) =>
+  apiClient.post(endpoint, formData, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  });
+
+// DELETE request helper
+export const deleteData = (endpoint) => apiClient.delete(endpoint);

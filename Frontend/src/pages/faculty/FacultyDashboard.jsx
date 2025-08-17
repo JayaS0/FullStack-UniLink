@@ -1,5 +1,6 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { getData } from "../../api/api";
 
 const colors = {
   midnightBlue: "#1C2E4A",
@@ -11,21 +12,55 @@ const colors = {
 
 export default function FacultyDashboard({ username, userProgram }) {
   const navigate = useNavigate();
+  const [listings, setListings] = useState([]);
+  const [reviews, setReviews] = useState([]);
+  const [resources, setResources] = useState([]);
 
-  const listings = [
-    { id: 1, title: "Job: Developer", company: "Tech Corp", category: "Job", date: "2025-07-10" },
-    { id: 2, title: "Intern: Marketing", company: "Market Masters", category: "Internship", date: "2025-07-09" },
-  ];
+  useEffect(() => {
+    const fetchAll = async () => {
+      try {
+        // Listings (all)
+        const listingsRes = await getData("listings");
+        setListings((listingsRes?.data || []).map((l) => ({
+          id: l._id,
+          title: l.title,
+          company: l.company,
+          category: l.category,
+          date: l.createdAt || new Date().toISOString(),
+        })));
 
-  const reviews = [
-    { id: 1, courseName: "CS101", comment: "Excellent!", facultyName: "Prof. Smith", program: "Computer Science", date: "2025-07-08" },
-    { id: 2, courseName: "FA201", comment: "Loved it!", facultyName: "Prof. Doe", program: "Fine Arts", date: "2025-07-07" },
-  ];
+        // Reviews (role-based)
+        const reviewsRes = await getData("reviews");
+        setReviews((reviewsRes?.data || []).map((r) => ({
+          id: r._id,
+          courseName: r.courseName,
+          comment: r.comment,
+          facultyName: r.facultyName,
+          program: r.program,
+          date: r.createdAt || new Date().toISOString(),
+        })));
 
-  const resources = [
-    { id: 1, title: "BBIS Notes", program: "BBIS", semester: 1, course: "Intro to IT", date: "2025-07-10", uploadedBy: "John Doe" },
-    { id: 2, title: "BBA Guide", program: "BBA", semester: 2, course: "Marketing 101", date: "2025-07-11", uploadedBy: "Jane Smith" },
-  ];
+        // Resources for first assigned program
+        const savedUser = JSON.parse(localStorage.getItem("currentUser") || "null");
+        const firstProgram = savedUser?.programs?.[0] || savedUser?.program;
+        if (firstProgram) {
+          const resourcesRes = await getData(`resources/${firstProgram}`);
+          setResources((resourcesRes?.data || []).map((r) => ({
+            id: r._id,
+            title: r.title,
+            program: r.program,
+            semester: r.semester,
+            course: r.relatedCourse,
+            date: r.createdAt || new Date().toISOString(),
+            uploadedBy: r.uploadedBy?.username || "Unknown",
+          })));
+        }
+      } catch (error) {
+        console.error("Failed to load faculty dashboard:", error);
+      }
+    };
+    fetchAll();
+  }, []);
 
   const sortByDateDesc = (arr) => [...arr].sort((a, b) => new Date(b.date) - new Date(a.date)).slice(0, 3);
 

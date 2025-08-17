@@ -465,15 +465,10 @@
 
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { postData } from "../api/api"; // adjust path if needed
+import { getData, postData } from "../api/api"; // adjust path if needed
 
-const PROGRAMS = [
-  "Computer Science",
-  "Information Technology",
-  "Electronics",
-  "Mechanical",
-  "Bachelor of Business Information Systems (BBIS)",
-];
+// Programs will be loaded from API
+const PROGRAMS = [];
 const COURSES = [
   "MAS101",
   "Data Structures",
@@ -492,6 +487,7 @@ export default function Signup() {
   const [program, setProgram] = useState("");
   const [semester, setSemester] = useState("");
   const [facultyPrograms, setFacultyPrograms] = useState([]);
+  const [programOptions, setProgramOptions] = useState([]);
   const [facultyCourses, setFacultyCourses] = useState([]);
 
   const [showPassword, setShowPassword] = useState(false);
@@ -545,6 +541,20 @@ export default function Signup() {
 
   const toggleArrayValue = (arr, val) =>
     arr.includes(val) ? arr.filter((x) => x !== val) : [...arr, val];
+
+  // Load programs for dropdowns
+  useEffect(() => {
+    const loadPrograms = async () => {
+      try {
+        const res = await getData('programs/public');
+        const names = (res?.data || []).map((p) => p.name);
+        setProgramOptions(names);
+      } catch (e) {
+        console.error('Failed to load programs', e);
+      }
+    };
+    loadPrograms();
+  }, []);
 
   // const handleSubmit = async (e) => {
   //   e.preventDefault();
@@ -753,7 +763,7 @@ export default function Signup() {
                 </button>
                 {showProgramDropdown && (
                   <div style={dropdownStyle}>
-                    {PROGRAMS.map((p) => (
+                    {programOptions.map((p) => (
                       <div
                         key={p}
                         onClick={() => {
@@ -825,7 +835,7 @@ export default function Signup() {
                 </button>
                 {showFacultyProgramDropdown && (
                   <div style={dropdownStyle}>
-                    {PROGRAMS.map((p) => (
+                    {programOptions.map((p) => (
                       <div
                         key={p}
                         onClick={() =>

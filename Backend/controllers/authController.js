@@ -4,6 +4,9 @@ import jwt from "jsonwebtoken";
 import Program from "../models/Program.js";
 import Course from "../models/Course.js";
 
+// Escapes user-provided strings for safe use inside RegExp patterns
+const escapeRegex = (input) => input.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
 // export const signup = async (req, res) => {
 //   try {
 //     const {
@@ -141,11 +144,26 @@ export const signup = async (req, res) => {
       if (!program || !semester) {
         return res.status(400).json({ message: "Program and semester required for students" });
       }
-      const programDoc = await Program.findOne({ name: program.trim() }).select("_id");
+      // Case-insensitive match for program name
+      const programName = String(program).trim();
+      const programDoc = await Program.findOne({
+        name: { $regex: `^${escapeRegex(programName)}$`, $options: "i" },
+      }).select("_id");
       if (!programDoc) {
         return res.status(400).json({ message: "Program not found" });
       }
       programObjectId = programDoc._id;
+
+      // Normalize semester into a number if a descriptive string is provided (e.g., "1st Semester")
+      const parsedSemester =
+        typeof semester === "string"
+          ? parseInt(semester.replace(/\D/g, ""), 10)
+          : semester;
+      if (!Number.isInteger(parsedSemester) || parsedSemester <= 0) {
+        return res.status(400).json({ message: "Invalid semester value" });
+      }
+      // Overwrite with normalized value for persistence
+      req.body.semester = parsedSemester;
     }
 
     if (role === "faculty") {
@@ -173,7 +191,7 @@ export const signup = async (req, res) => {
       password: hashedPassword,
       role,
       program: role === "student" ? programObjectId : undefined,
-      semester: role === "student" ? semester : undefined,
+      semester: role === "student" ? req.body.semester : undefined,
       programs: role === "faculty" ? programObjectIds : [],
       courses: role === "faculty" ? courseObjectIds : [],
       verified: true,

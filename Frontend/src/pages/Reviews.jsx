@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { getData, postData } from "../api/api";
 
 export default function StudentReviewsPage() {
   const primaryColor = "#1C2E4A";
@@ -32,35 +33,40 @@ export default function StudentReviewsPage() {
   const [showInfoModal, setShowInfoModal] = useState(false);
   const [infoReviewer, setInfoReviewer] = useState(null);
 
-  // Reviews state (sample data)
-  const [reviews, setReviews] = useState([
-    {
-      id: 1,
-      courseId: "CS101",
-      courseName: "Intro to Computer Science",
-      facultyName: "Prof. Smith",
-      rating: 5,
-      comment: "Excellent course!",
-      semester: 3,
-      program: "Computer Science",
-      userSubmitted: false,
-      reviewer: { username: "john_doe", program: "Computer Science", semester: "3" },
-      userId: 456,
-    },
-    {
-      id: 2,
-      courseId: "FA201",
-      courseName: "Painting Basics",
-      facultyName: "Prof. Doe",
-      rating: 4,
-      comment: "Loved the creativity!",
-      semester: 2,
-      program: "Fine Arts",
-      userSubmitted: true,
-      reviewer: { username: "jaya123", program: "Fine Arts", semester: "2" },
-      userId: 123,
-    },
-  ]);
+  // Reviews state
+  const [reviews, setReviews] = useState([]);
+
+  // Fetch reviews from API on load
+  useEffect(() => {
+    const fetchReviews = async () => {
+      try {
+        const response = await getData("reviews");
+        const mapped = (response?.data || []).map((r) => ({
+          id: r._id,
+          courseId: r.courseId,
+          courseName: r.courseName,
+          facultyName: r.facultyName,
+          rating: r.rating,
+          comment: r.comment,
+          semester: r.semester,
+          program: typeof r.program === "object" && r.program?.name ? r.program.name : r.program,
+          userSubmitted: false,
+          reviewer: r.user
+            ? {
+                username: r.user.username,
+                program: r.user.program,
+                semester: String(r.user.semester),
+              }
+            : undefined,
+          userId: r.user?._id,
+        }));
+        setReviews(mapped);
+      } catch (error) {
+        console.error("Failed to fetch reviews:", error);
+      }
+    };
+    fetchReviews();
+  }, []);
 
   // Open menu per review card (store open menu review id)
   const [openMenuId, setOpenMenuId] = useState(null);
@@ -122,14 +128,12 @@ export default function StudentReviewsPage() {
   };
 
   // Submit add/edit form
-  const handleSubmitForm = (e) => {
+  const handleSubmitForm = async (e) => {
     e.preventDefault();
     if (
       !formCourseId ||
       !formCourseName ||
       !formFacultyName ||
-      !formSemester ||
-      !formProgram ||
       formRating === 0 ||
       !formComment
     ) {
@@ -137,45 +141,53 @@ export default function StudentReviewsPage() {
       return;
     }
 
-    if (editingId) {
-      // Update existing review
-      setReviews(
-        reviews.map((r) =>
-          r.id === editingId
-            ? {
-                ...r,
-                courseId: formCourseId,
-                courseName: formCourseName,
-                facultyName: formFacultyName,
-                semester: formSemester,
-                program: formProgram,
-                rating: formRating,
-                comment: formComment,
-              }
-            : r
-        )
-      );
-      alert("Review updated!");
-    } else {
-      // Add new review
-      const newReview = {
-        id: Date.now(),
+    try {
+      const savedUser = JSON.parse(localStorage.getItem("currentUser") || "null");
+      const programId = savedUser?.program || savedUser?.programs?.[0];
+      const semesterFromUser = savedUser?.semester;
+
+      const payload = {
         courseId: formCourseId,
         courseName: formCourseName,
+        facultyId: formFacultyName, // backend requires a string; using name as identifier
         facultyName: formFacultyName,
-        semester: formSemester,
-        program: formProgram,
         rating: formRating,
         comment: formComment,
-        userSubmitted: true,
-        reviewer: { username: "current_user", program: formProgram, semester: formSemester },
-        userId: currentUser.id,
+        semester: semesterFromUser ?? formSemester,
+        program: programId,
       };
-      setReviews([newReview, ...reviews]);
-      alert("Review submitted anonymously!");
+
+      await postData("reviews", payload);
+
+      // refresh list
+      const response = await getData("reviews");
+      const mapped = (response?.data || []).map((r) => ({
+        id: r._id,
+        courseId: r.courseId,
+        courseName: r.courseName,
+        facultyName: r.facultyName,
+        rating: r.rating,
+        comment: r.comment,
+        semester: r.semester,
+        program: typeof r.program === "object" && r.program?.name ? r.program.name : r.program,
+        reviewer: r.user
+          ? {
+              username: r.user.username,
+              program: r.user.program,
+              semester: String(r.user.semester),
+            }
+          : undefined,
+        userId: r.user?._id,
+      }));
+      setReviews(mapped);
+
+      alert("Review submitted!");
+      resetForm();
+      setShowForm(false);
+    } catch (error) {
+      console.error("Failed to submit review:", error);
+      alert(error.response?.data?.message || "Failed to submit review.");
     }
-    resetForm();
-    setShowForm(false);
   };
 
   // Delete review
